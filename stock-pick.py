@@ -22,23 +22,32 @@ def downloaddata():
     df1 = df1.sort_index(axis=0, ascending=True)
     df1.to_csv('./stock-pick/today_all.csv')
 
+    df2 = pro.bak_basic(trade_date='20210709')
+    df2.to_csv('./stock-pick/temp-%s.csv'%str(dt.datetime.today().strftime("%Y%m%d")));
+
 def stock_picking():
     df0 = pd.read_csv('./stock-pick/stock_basics.csv')
     df1 = pd.read_csv('./stock-pick/today_all.csv')
-    
-    #将df0和df1横向拼接起来，赋给df
-    df = pd.merge(df0,df1, how='inner')
-    df.to_csv('./stock-pick/temp.csv');
+    df2 = pd.read_csv('./stock-pick/temp-%s.csv'%str(dt.datetime.today().strftime("%Y%m%d")))
 
-    # 将每股收益（esp）>1，0<PB<1
-    df = df[(df.esp > 1) & (0 < df.pb) & (df.pb < 1)]
+    #循环股票读取前一个交易日的备用列表bak_basic 
+
+    #将df0和df1横向拼接起来，赋给df
+    df = pd.merge(df0,df1, on='name')
+
+    df = pd.merge(df, df2,on='ts_code')
+    df.to_csv('./stock-pick/temptoday.csv');
+
+    # 将每股收益（eps）>1，0<PB<1
+    df = df[(df.eps > 1) & (0 < df.pb) & (df.pb < 2)]
     #将 涨跌幅（changepercent)<4% 和 0.8%<换手率(turnoverratio)<3% 的保留下来
     df = df[(df.changepercent<4) & (0.8<df.turnoverratio)&(df.turnoverratio<3)]
+    print(df)
     if df.empty:
         print('无符合条件股票！')
     else:
         df = df.sort_values(by='pb', ascending=True)
-        df = df.rename(columns={'code':'股票代码', 'name':'股票简称', 'pb':'平均净资产', 'esp':'每股收益', \
+        df = df.rename(columns={'code':'股票代码', 'name':'股票简称', 'pb':'平均净资产', 'eps':'每股收益', \
                   'timeToMarket':'上市日期', 'changepercent':'涨跌幅', 'turnoverratio':'换手率'})
         df = df.set_index('股票代码')
         #df.to_csv('C:/Users/admin/Desktop/选股.csv')
